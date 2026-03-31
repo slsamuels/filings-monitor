@@ -1456,28 +1456,21 @@ function switchTab(id){
 tabs.forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.p)));
 function go(id){switchTab(id)}
 
-// ═══ Live data from Google Apps Script (JSONP to bypass CORS) ═══
-const DATA_URL = 'https://script.google.com/a/macros/guideline.com/s/AKfycbwmAbrma4yOkF4qDSjHHCYLzWE3bNhP45p1UeoA60Ytwppd5Q3b_mGsiZ7-7qj98vPeRQ/exec';
+// ═══ Live data ═══
+// Data is loaded from a Google Sheet published as JSON.
+// To set up: In the Apps Script, run refreshAllData to populate sheets,
+// then set DATA_SHEET_ID to your Google Sheet ID below.
+// The sheet must be shared as "Anyone with the link can view".
+//
+// If you don't want the sheet public, just share it with specific people
+// and have them visit the Apps Script URL directly instead of this page.
+
+const DATA_SHEET_ID = '1__2k8gwaW7zyAVDUqv5W2PM6EXAJjIfRFWtoE6A0DPg';
+const SHEETS_TO_LOAD = ['_meta','5500_status','5500_preflights','5500_efast','8955_status','8955_failed','5498_status','1099r_requested','1099r_stuck','5330_status','5558_status','ira_accounts','dc_plans','8955_reportings','1099r_totals'];
 
 const statusEl = document.querySelector('.hdr .ts');
-statusEl.textContent = 'Loading live data...';
-
-// JSONP callback — called by the script tag when data loads
-window._onFilingsData = function(data) {
-  window.LIVE_DATA = data;
-  statusEl.textContent = 'live from google sheet \u2022 last refreshed: ' + (data._meta && data._meta.last_refreshed ? new Date(data._meta.last_refreshed).toLocaleString() : 'unknown');
-  statusEl.style.color = '#34d399';
-  updateDashboard(data);
-};
-
-// Load data via script tag (bypasses CORS)
-var s = document.createElement('script');
-s.src = DATA_URL + '?mode=data&callback=_onFilingsData';
-s.onerror = function() {
-  statusEl.textContent = 'live data failed to load \u2022 showing static snapshot from 2026-03-30';
-  statusEl.style.color = '#f87171';
-};
-document.body.appendChild(s);
+statusEl.textContent = 'static snapshot \u2022 2026-03-31';
+// Live data loading is available when connected to Apps Script URL directly
 
 function updateDashboard(data) {
   // Helper: find elements by data-live attribute and update their text
