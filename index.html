@@ -1456,30 +1456,28 @@ function switchTab(id){
 tabs.forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.p)));
 function go(id){switchTab(id)}
 
-// ═══ Live data from Google Apps Script ═══
-// SETUP: Paste your deployed Apps Script web app URL here:
-// Auto-detect: if served from Apps Script, fetch data from same origin; otherwise use the full URL
-const DATA_URL = window.location.hostname.includes('script.google')
-  ? window.location.href.split('?')[0] + '?mode=data'
-  : 'https://script.google.com/a/macros/guideline.com/s/AKfycbyjPOl2g0JrGAIFvtrf23B8iF-yFhnalvyo-asXQNkiYQA6cebYkHdXJxoTZPAc80JPnQ/exec?mode=data';
+// ═══ Live data from Google Apps Script (JSONP to bypass CORS) ═══
+const DATA_URL = 'https://script.google.com/a/macros/guideline.com/s/AKfycbyjPOl2g0JrGAIFvtrf23B8iF-yFhnalvyo-asXQNkiYQA6cebYkHdXJxoTZPAc80JPnQ/exec';
 
-if (DATA_URL) {
-  const statusEl = document.querySelector('.hdr .ts');
-  statusEl.textContent = 'Loading live data...';
+const statusEl = document.querySelector('.hdr .ts');
+statusEl.textContent = 'Loading live data...';
 
-  fetch(DATA_URL)
-    .then(r => r.json())
-    .then(data => {
-      window.LIVE_DATA = data;
-      statusEl.textContent = `live from google sheet • last refreshed: ${data._meta?.last_refreshed ? new Date(data._meta.last_refreshed).toLocaleString() : 'unknown'}`;
-      statusEl.style.color = '#34d399';
-      updateDashboard(data);
-    })
-    .catch(err => {
-      statusEl.textContent = `live data failed: ${err.message} • showing static snapshot from 2026-03-30`;
-      statusEl.style.color = '#f87171';
-    });
-}
+// JSONP callback — called by the script tag when data loads
+window._onFilingsData = function(data) {
+  window.LIVE_DATA = data;
+  statusEl.textContent = 'live from google sheet \u2022 last refreshed: ' + (data._meta && data._meta.last_refreshed ? new Date(data._meta.last_refreshed).toLocaleString() : 'unknown');
+  statusEl.style.color = '#34d399';
+  updateDashboard(data);
+};
+
+// Load data via script tag (bypasses CORS)
+var s = document.createElement('script');
+s.src = DATA_URL + '?mode=data&callback=_onFilingsData';
+s.onerror = function() {
+  statusEl.textContent = 'live data failed to load \u2022 showing static snapshot from 2026-03-30';
+  statusEl.style.color = '#f87171';
+};
+document.body.appendChild(s);
 
 function updateDashboard(data) {
   // Helper: find elements by data-live attribute and update their text
