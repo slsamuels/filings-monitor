@@ -729,7 +729,7 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
     <div class="cl-check upcoming">2</div>
     <div class="cl-body">
       <div class="cl-title">Send Missing Info Tasks to Sponsors <span class="when">After step 1</span> <span class="tag manual">MANUAL</span></div>
-      <div class="cl-desc">For plans with participants missing SSNs: sends sponsor tasks to confirm/provide the data. <strong>Must happen before Generate Forms</strong> so sponsors can fix data first. <strong>Blocked after extended filing deadline.</strong></div>
+      <div class="cl-desc">For plans with participants missing SSNs: sends sponsor tasks to confirm/provide the data. Once the sponsor completes the task, the filing is generated automatically. <strong>Blocked after extended filing deadline.</strong></div>
       <div class="cl-admin">Filing Console &rarr; Form 8955 &rarr; <code>Send 8955 Tasks</code> (enter plan_year, plan_ids)</div>
       <div class="cl-admin">Runs: <code>FilingTaskGenerateOp::BatchOp</code> (creates DcPlanFiling8955Tasker)</div>
       <div class="cl-data b">PY2024 result: 6,128 sponsor tasks sent</div>
