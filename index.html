@@ -256,7 +256,7 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
     </div>
     <div class="oc-bar"><div class="oc-fill a" style="width:30%"></div></div>
     <div class="oc-status">Participant reporting started Apr 1 — 6,522 of ~22K plans so far. Runs monthly through June (RETIRE-2235).</div>
-    <div class="oc-issue g">In progress — next steps: Generate Forms + Send Tasks in Filing Console after sufficient participants reported.</div>
+    <div class="oc-issue g">In progress — next steps: Send Missing Info Tasks (for plans needing SSN), then Generate Forms (for plans with complete data).</div>
   </div>
 
   <div class="oc" onclick="go('f5498')">
@@ -728,8 +728,19 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
   <div class="cl-item">
     <div class="cl-check upcoming">2</div>
     <div class="cl-body">
-      <div class="cl-title">Generate Forms <span class="when">After step 1</span> <span class="tag manual">MANUAL</span></div>
-      <div class="cl-desc">Creates 8955 filing records and form data for plans with participant reportings. <strong>This does not happen automatically.</strong> Someone must trigger it in the Filing Console.</div>
+      <div class="cl-title">Send Missing Info Tasks to Sponsors <span class="when">After step 1</span> <span class="tag manual">MANUAL</span></div>
+      <div class="cl-desc">For plans with participants missing SSNs: sends sponsor tasks to confirm/provide the data. <strong>Must happen before Generate Forms</strong> so sponsors can fix data first. <strong>Blocked after extended filing deadline.</strong></div>
+      <div class="cl-admin">Filing Console &rarr; Form 8955 &rarr; <code>Send 8955 Tasks</code> (enter plan_year, plan_ids)</div>
+      <div class="cl-admin">Runs: <code>FilingTaskGenerateOp::BatchOp</code> (creates DcPlanFiling8955Tasker)</div>
+      <div class="cl-data b">PY2024 result: 6,128 sponsor tasks sent</div>
+    </div>
+  </div>
+
+  <div class="cl-item">
+    <div class="cl-check upcoming">3</div>
+    <div class="cl-body">
+      <div class="cl-title">Generate Forms (plans with complete data) <span class="when">After step 2</span> <span class="tag manual">MANUAL</span></div>
+      <div class="cl-desc">Creates 8955 filing records for plans that <strong>don't need</strong> the missing info task (data already complete). Plans waiting on sponsor tasks get forms generated later after task completion.</div>
       <div class="cl-admin">Filing Console &rarr; Form 8955 &rarr; <code>Generate 8955 Forms</code> (enter plan_year, optional plan_ids)</div>
       <div class="cl-admin">Runs: <code>FilingTaskGenerateOp::BatchOp</code> with <code>create_form8955_only: true</code></div>
       <div class="cl-data a">PY2024 result: ~21,340 filings created</div>
@@ -737,21 +748,10 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
   </div>
 
   <div class="cl-item">
-    <div class="cl-check upcoming">3</div>
-    <div class="cl-body">
-      <div class="cl-title">Send Tasks to Sponsors <span class="when">After step 2</span> <span class="tag manual">MANUAL</span></div>
-      <div class="cl-desc">Sends sponsor tasks requesting SSN confirmation for separated participants. Sponsors review the participant list and confirm/update SSNs. <strong>Blocked after extended filing deadline.</strong></div>
-      <div class="cl-admin">Filing Console &rarr; Form 8955 &rarr; <code>Send 8955 Tasks</code> (enter plan_year, plan_ids)</div>
-      <div class="cl-admin">Runs: <code>FilingTaskGenerateOp::BatchOp</code> (creates DcPlanFiling8955Tasker)</div>
-      <div class="cl-data b">PY2024 result: 6,128 sponsor tasks created</div>
-    </div>
-  </div>
-
-  <div class="cl-item">
     <div class="cl-check upcoming">4</div>
     <div class="cl-body">
-      <div class="cl-title">Sponsor Completes SSN Tasks <span class="when">Weeks after step 3</span> <span class="tag sponsor">SPONSOR</span></div>
-      <div class="cl-desc">Sponsors log into their dashboard and confirm/update participant SSNs. Filing stays in pending/confirmed state until this completes. Some sponsors never respond.</div>
+      <div class="cl-title">Sponsor Completes Missing Info Tasks <span class="when">Weeks after step 2</span> <span class="tag sponsor">SPONSOR</span></div>
+      <div class="cl-desc">Sponsors log into their dashboard and provide missing SSNs. Filing stays in pending/confirmed state until this completes. Some sponsors never respond.</div>
     </div>
   </div>
 
@@ -823,16 +823,16 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
   <div class="cl-item">
     <div class="cl-check done">✓</div>
     <div class="cl-body">
-      <div class="cl-title">Generate Forms <span class="tag manual">MANUAL</span></div>
-      <div class="cl-data g">~21,340 annual filings created</div>
+      <div class="cl-title">Send Missing Info Tasks <span class="tag manual">MANUAL</span></div>
+      <div class="cl-data g">6,128 sponsor tasks sent</div>
     </div>
   </div>
 
   <div class="cl-item">
     <div class="cl-check done">✓</div>
     <div class="cl-body">
-      <div class="cl-title">Send Tasks <span class="tag manual">MANUAL</span></div>
-      <div class="cl-data g">6,128 sponsor tasks sent</div>
+      <div class="cl-title">Generate Forms (complete data plans) <span class="tag manual">MANUAL</span></div>
+      <div class="cl-data g">~21,340 annual filings created</div>
     </div>
   </div>
 
