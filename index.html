@@ -224,6 +224,7 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
   <div class="tab" data-p="f1099">Form 1099-R</div>
   <div class="tab" data-p="f5330">Form 5330 <span class="bdg r">!</span></div>
   <div class="tab" data-p="f5558">Form 5558</div>
+  <div class="tab" data-p="actions">Action Items <span class="bdg r" id="action-count"></span></div>
   <div class="tab" data-p="gaps">Gaps</div>
 </div>
 
@@ -1428,6 +1429,16 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
 <!-- ═══════════════════════════════════════ -->
 <!--  MONITORING GAPS                        -->
 <!-- ═══════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════ -->
+<!--  ACTION ITEMS (auto-generated)          -->
+<!-- ═══════════════════════════════════════ -->
+<div class="pane" id="pane-actions">
+<p style="color:var(--dm);margin-bottom:14px">Auto-generated from live data. Items disappear when resolved. Grouped by team.</p>
+<div id="action-items-container">
+  <div class="note">Action items will populate when live data is connected. Showing rules-based preview from static data:</div>
+</div>
+</div>
+
 <div class="pane" id="pane-gaps">
 <p style="color:var(--dm);margin-bottom:12px">Blind spots in <code>Health::Filings</code> proven by this investigation.</p>
 <div class="gg">
@@ -1468,39 +1479,255 @@ if (window.LIVE_DATA) {
 }
 
 function updateDashboard(data) {
-  // Helper: find elements by data-live attribute and update their text
-  document.querySelectorAll('[data-live]').forEach(el => {
-    const key = el.dataset.live;
-    const val = resolveLiveValue(data, key);
-    if (val !== null && val !== undefined) {
-      el.textContent = typeof val === 'number' ? val.toLocaleString() : val;
-    }
-  });
+  generateActionItems(data);
 }
 
-function resolveLiveValue(data, key) {
-  // key format: "dataset.aggregation" e.g. "5500_preflights.eligible.sum.2025"
-  // For now, this is a framework — specific bindings added as needed
-  try {
-    const parts = key.split('.');
-    const dataset = data[parts[0]];
-    if (!dataset) return null;
-    
-    if (parts[1] === 'count') return dataset.length;
-    
-    // Sum a field filtered by conditions
-    if (parts[1] === 'sum') {
-      const field = parts[2];
-      const filterField = parts[3];
-      const filterVal = parts[4];
-      return dataset
-        .filter(r => filterField ? String(r[filterField]) === filterVal : true)
-        .reduce((s, r) => s + (Number(r[field]) || 0), 0);
+// ═══ Action Items Rules Engine ═══
+function generateActionItems(data) {
+  const items = [];
+
+  // ── OPS RULES ──
+
+  // 8955 failed final filings
+  if (data['8955_failed']) {
+    const unfulfilled = data['8955_failed'].filter(r => !r.has_fulfilled && r.state === 'failed');
+    if (unfulfilled.length > 0) {
+      const planIds = unfulfilled.map(r => r.plan_id).join(', ');
+      items.push({
+        team: 'ops', priority: 'high',
+        title: unfulfilled.length + ' failed 8955 final filings need Batch Amend',
+        detail: 'All are "duplicate EIN" FIRE rejections on terminated plans. Past 60-day reset window.',
+        action: 'Filing Console → Form 8955 → Batch Amend (plan_year=' + unfulfilled[0].plan_year + ', plan IDs: ' + planIds + ')',
+        filing: '8955'
+      });
     }
-    
-    return null;
-  } catch(e) { return null; }
+    // 8955 SSN errors needing fix
+    const ssnErrors = data['8955_failed'].filter(r => !r.has_fulfilled && r.state === 'amended');
+    if (ssnErrors.length > 0) {
+      items.push({
+        team: 'ops', priority: 'high',
+        title: ssnErrors.length + ' amended 8955s with SSN errors need participant data fix',
+        detail: 'Fix the participant SSN (record sequence # in fire_state_meta), then Batch Amend.',
+        action: 'Admin → find participant → fix SSN → Filing Console → Batch Amend',
+        filing: '8955'
+      });
+    }
+  }
+
+  // 5330 Section A backlog
+  if (data['5330_status']) {
+    const stuck2023 = data['5330_status'].filter(r => r.plan_year === 2023 && r.section === 'A' && r.state === 'prepared' && !r.exclusion_reason);
+    const cnt2023 = stuck2023.reduce((s,r) => s + Number(r.cnt), 0);
+    if (cnt2023 > 0) {
+      items.push({
+        team: 'ops', priority: 'critical',
+        title: cnt2023.toLocaleString() + ' PY2023 Section A 5330s stuck in "prepared" for 20+ months',
+        detail: 'PDFs generated but never published to sponsors. Coordinate with compliance on messaging first.',
+        action: 'Filing Console → Form 5330 → Generate Forms (plan_year=2023, section=A)',
+        filing: '5330'
+      });
+    }
+    const pending2024 = data['5330_status'].filter(r => r.plan_year === 2024 && r.section === 'A' && r.state === 'pending' && !r.exclusion_reason);
+    const cnt2024 = pending2024.reduce((s,r) => s + Number(r.cnt), 0);
+    if (cnt2024 > 0) {
+      items.push({
+        team: 'ops', priority: 'critical',
+        title: cnt2024.toLocaleString() + ' PY2024 Section A 5330s never prepared or published',
+        detail: 'Late deposit excise tax forms — sponsors don\'t know they owe tax. Deadline was Jul 31, 2025.',
+        action: 'Filing Console → Form 5330 → Generate Forms (plan_year=2024, section=A)',
+        filing: '5330'
+      });
+    }
+    // Section C policy decision
+    const secC = data['5330_status'].filter(r => r.section === 'C' && r.state === 'batch_prepared' && !r.exclusion_reason);
+    const cntC = secC.reduce((s,r) => s + Number(r.cnt), 0);
+    if (cntC > 0) {
+      items.push({
+        team: 'product', priority: 'medium',
+        title: cntC + ' Section C 5330s in batch_prepared — blocked by code (can_mark_as_mailed?)',
+        detail: 'Section C for PY≥2023 cannot auto-advance to "mailed." Intentional policy change or bug?',
+        action: 'Get compliance/policy decision on whether Section C PY≥2023 should be published to sponsors',
+        filing: '5330'
+      });
+    }
+  }
+
+  // 1099-R stuck > 60 days
+  if (data['1099r_stuck']) {
+    const old = data['1099r_stuck'].filter(r => Number(r.days_in_requested) > 60);
+    if (old.length > 0) {
+      items.push({
+        team: 'ops', priority: 'medium',
+        title: old.length + ' 1099-R filings stuck in "requested" > 60 days',
+        detail: 'Usually bad participant addresses. Brian contacts BTC in January for corrections. If BTC never responds, these stay stale.',
+        action: 'Check with Brian on BTC address correction status. Cancel records where BTC confirmed they can\'t deliver.',
+        filing: '1099-R'
+      });
+    }
+  }
+
+  // 5558 not mailed past deadline
+  if (data['5558_status']) {
+    const notMailed = data['5558_status'].filter(r => r.plan_year === 2024 && (r.state === 'prepared' || r.state === 'batch_prepared'));
+    const cnt5558 = notMailed.reduce((s,r) => s + Number(r.cnt), 0);
+    if (cnt5558 > 0) {
+      items.push({
+        team: 'ops', priority: 'medium',
+        title: cnt5558 + ' PY2024 5558 extensions not mailed — deadline was Jul 31, 2025',
+        detail: 'Check if associated plans filed by Jul 31. If not, they may be technically late.',
+        action: 'Filing Console → Form 5558 → Mark as Mailed (if actually sent) or cancel',
+        filing: '5558'
+      });
+    }
+  }
+
+  // ── ENG RULES ──
+
+  // EFAST poll skipping amended filings
+  if (data['5500_efast']) {
+    const pendingAmendments = data['5500_efast'].filter(r => r.amendment_efast === 'pending');
+    if (pendingAmendments.length > 0) {
+      items.push({
+        team: 'eng', priority: 'medium',
+        title: pendingAmendments.length + ' 5500 amendments stuck in EFAST "pending"',
+        detail: 'All from same Oct 2025 batch. EfastStatusFetchOp may exclude amended filings from its query scope.',
+        action: 'Investigate EfastStatusFetchOp query — check if it filters out irs_plan_submissions attached to amended filings. Run manually for form_year=2024.',
+        filing: '5500'
+      });
+    }
+  }
+
+  // 5498 rejection trend
+  if (data['5498_status']) {
+    const py24bad = data['5498_status'].filter(r => r.plan_year === 2024 && r.fire_state === 'BAD');
+    const py23bad = data['5498_status'].filter(r => r.plan_year === 2023 && r.fire_state === 'BAD');
+    const cnt24 = py24bad.reduce((s,r) => s + Number(r.cnt), 0);
+    const cnt23 = py23bad.reduce((s,r) => s + Number(r.cnt), 0);
+    if (cnt24 > cnt23 * 2) {
+      items.push({
+        team: 'eng', priority: 'medium',
+        title: '5498 FIRE rejections increased ' + (cnt24/cnt23).toFixed(1) + 'x (PY2023: ' + cnt23 + ' → PY2024: ' + cnt24 + ')',
+        detail: 'Investigate root cause before PY2025 season starts. Pull fire_state_meta for rejection reason breakdown.',
+        action: 'Query fire_state_meta from replaced 5498 filings. If one root cause dominates, fix upstream.',
+        filing: '5498'
+      });
+    }
+  }
+
+  // ── PRODUCT RULES ──
+
+  // 5330/5558 health check gap
+  items.push({
+    team: 'product', priority: 'low',
+    title: 'Form 5330 and 5558 have zero automated health checks',
+    detail: 'Health::Filings has no checks for either form type. The 5330 backlog went undetected for 20 months.',
+    action: 'Add health checks for: 5330 filings stuck in prepared/pending past deadline, 5558 not mailed approaching Jul 31',
+    filing: '5330'
+  });
+
+  // 1099-R stale record cleanup
+  if (data['1099r_requested']) {
+    const stale = data['1099r_requested'].filter(r => Number(r.requested_year) < 2026);
+    const staleCount = stale.reduce((s,r) => s + Number(r.cnt), 0);
+    if (staleCount > 100) {
+      items.push({
+        team: 'eng', priority: 'low',
+        title: staleCount + ' stale 1099-R records accumulating (2022–2025)',
+        detail: 'Orphaned "requested" records where BTC confirmation was never received. Need a cleanup dev task.',
+        action: 'Build dev task: find form1099r_filings in "requested" where parent BaseRequest is confirmed/rejected/reversed → cancel',
+        filing: '1099-R'
+      });
+    }
+  }
+
+  // Render
+  renderActionItems(items);
 }
+
+function renderActionItems(items) {
+  const container = document.getElementById('action-items-container');
+  if (!items.length) {
+    container.innerHTML = '<div class="vd g">No action items — all filings on track!</div>';
+    document.getElementById('action-count').textContent = '0';
+    return;
+  }
+
+  const priorityOrder = {critical:0, high:1, medium:2, low:3};
+  items.sort((a,b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+  const teams = {ops: [], eng: [], product: []};
+  items.forEach(i => teams[i.team].push(i));
+
+  const teamLabels = {ops:'Operations', eng:'Engineering', product:'Product'};
+  const teamColors = {ops:'var(--a)', eng:'var(--b)', product:'var(--dm)'};
+  const priColors = {critical:'r', high:'r', medium:'a', low:'b'};
+
+  let html = '';
+  for (const [team, teamItems] of Object.entries(teams)) {
+    if (!teamItems.length) continue;
+    html += '<div class="sh" style="color:' + teamColors[team] + '">' + teamLabels[team] + ' (' + teamItems.length + ')</div>';
+    teamItems.forEach(item => {
+      html += '<div class="gc" style="margin-bottom:8px">';
+      html += '<h3><span class="p ' + priColors[item.priority] + '">' + item.priority.toUpperCase() + '</span> ' + item.title + '</h3>';
+      html += '<p>' + item.detail + '</p>';
+      html += '<p style="color:var(--a);margin-top:4px"><strong>Action:</strong> ' + item.action + '</p>';
+      html += '<p style="color:var(--dd);font-size:9px;margin-top:2px">Filing: ' + item.filing + '</p>';
+      html += '</div>';
+    });
+  }
+
+  container.innerHTML = html;
+
+  const actionable = items.filter(i => i.priority === 'critical' || i.priority === 'high').length;
+  const badge = document.getElementById('action-count');
+  badge.textContent = actionable || items.length;
+  badge.className = 'bdg ' + (actionable > 0 ? 'r' : 'a');
+}
+
+// Run with static data on load (will re-run with live data when available)
+generateActionItems({
+  '8955_failed': [
+    {plan_id:154272,plan_year:2025,state:'failed',has_fulfilled:false},
+    {plan_id:155260,plan_year:2025,state:'failed',has_fulfilled:false},
+    {plan_id:164952,plan_year:2025,state:'failed',has_fulfilled:false},
+    {plan_id:171749,plan_year:2025,state:'failed',has_fulfilled:false},
+    {plan_id:180802,plan_year:2025,state:'failed',has_fulfilled:false},
+    {plan_id:258119,plan_year:2025,state:'failed',has_fulfilled:false},
+    {plan_id:276430,plan_year:2025,state:'failed',has_fulfilled:false},
+  ],
+  '5330_status': [
+    {plan_year:2023,section:'A',state:'prepared',exclusion_reason:'',cnt:1734},
+    {plan_year:2024,section:'A',state:'pending',exclusion_reason:'',cnt:3218},
+    {plan_year:2024,section:'C',state:'batch_prepared',exclusion_reason:'',cnt:81},
+    {plan_year:2023,section:'C',state:'batch_prepared',exclusion_reason:'',cnt:5},
+  ],
+  '1099r_stuck': [
+    {days_in_requested:88},{days_in_requested:85},{days_in_requested:85},
+    {days_in_requested:81},{days_in_requested:81},{days_in_requested:81},
+    {days_in_requested:78},{days_in_requested:78},{days_in_requested:78},
+    {days_in_requested:75},{days_in_requested:69},{days_in_requested:67},
+    {days_in_requested:63},
+  ],
+  '1099r_requested': [
+    {requested_year:2022,cnt:1},{requested_year:2024,cnt:301},{requested_year:2025,cnt:205},
+  ],
+  '5500_efast': [
+    {plan_id:1446,amendment_efast:'pending'},{plan_id:4690,amendment_efast:'pending'},
+    {plan_id:5593,amendment_efast:'pending'},{plan_id:9042,amendment_efast:'pending'},
+    {plan_id:10860,amendment_efast:'pending'},{plan_id:11530,amendment_efast:'pending'},
+    {plan_id:16457,amendment_efast:'pending'},{plan_id:17612,amendment_efast:'pending'},
+    {plan_id:167077,amendment_efast:'pending'},{plan_id:211326,amendment_efast:'pending'},
+    {plan_id:290397,amendment_efast:'pending'},{plan_id:292282,amendment_efast:'pending'},
+    {plan_id:293388,amendment_efast:'pending'},
+  ],
+  '5498_status': [
+    {plan_year:2024,fire_state:'BAD',cnt:2921},
+    {plan_year:2023,fire_state:'BAD',cnt:898},
+  ],
+  '5558_status': [
+    {plan_year:2024,state:'batch_prepared',cnt:21},
+  ],
+});
 </script>
 </body>
 </html>
