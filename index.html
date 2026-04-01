@@ -716,11 +716,12 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
   <h3><div class="dot b"></div>PY2025 Annual Season — Order of Operations</h3>
 
   <div class="cl-item">
-    <div class="cl-check upcoming">1</div>
+    <div class="cl-check active">→</div>
     <div class="cl-body">
-      <div class="cl-title">Participant Reporting Upsert <span class="when">~Jun 22, 2026</span> <span class="tag auto">AUTO</span></div>
-      <div class="cl-desc">Scheduled job <code>evaluate_missing_ssn_participants</code> (day 174) runs <code>ParticipantReportingUpsertOp::PlanBatchOp</code> for the current filing year focus. Creates participant reporting records for plans with separated participants who have vested balances. This is the data foundation for all 8955 filings.</div>
-      <div class="cl-data b">PY2024 result: 22,019 plans / 90,957 participant records</div>
+      <div class="cl-title">Participant Reporting Upsert <span class="when">Bulk run Apr 1, 2026</span> <span class="tag manual">MANUAL</span></div>
+      <div class="cl-desc">Ran manually in early April (normally auto-scheduled ~Jun 22). Creates participant reporting records for plans with separated participants who have vested balances. This is the data foundation for all 8955 filings. Another run (auto or manual) will be needed to catch remaining plans.</div>
+      <div class="cl-data a">6,522 plans / 39,858 participants created so far (expected ~22K plans based on PY2024)</div>
+      <div class="cl-desc" style="margin-top:4px">5,135 plans added in the April bulk run. Remaining ~15K plans may need another run closer to the Jun/Jul deadline. Auto-scheduled job runs ~Jun 22 and will pick up the rest.</div>
     </div>
   </div>
 
@@ -815,7 +816,7 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
     <div class="cl-check done">✓</div>
     <div class="cl-body">
       <div class="cl-title">Participant Reporting Upsert <span class="tag auto">AUTO</span></div>
-      <div class="cl-data g">22,019 plans / 90,957 participant records</div>
+      <div class="cl-data g">22,019 plans with separated participants identified</div>
     </div>
   </div>
 
