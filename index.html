@@ -718,10 +718,10 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
   <div class="cl-item">
     <div class="cl-check active">→</div>
     <div class="cl-body">
-      <div class="cl-title">Participant Reporting Upsert <span class="when">Bulk run Apr 1, 2026</span> <span class="tag manual">MANUAL</span></div>
-      <div class="cl-desc">Ran manually in early April (normally auto-scheduled ~Jun 22). Creates participant reporting records for plans with separated participants who have vested balances. This is the data foundation for all 8955 filings. Another run (auto or manual) will be needed to catch remaining plans.</div>
+      <div class="cl-title">Participant Reporting Upsert <span class="when">Monthly Mar→Jun (RETIRE-2235)</span> <span class="tag auto">AUTO</span></div>
+      <div class="cl-desc">Schedule updated per <a href="https://gustohq.atlassian.net/browse/RETIRE-2235" target="_blank" style="color:var(--b)">RETIRE-2235</a> (PR merged Mar 30): moved from single June run to <strong>monthly starting March 1</strong>, re-running each month to capture data backfills through June.</div>
       <div class="cl-data a">6,522 plans / 39,858 participants created so far (expected ~22K plans based on PY2024)</div>
-      <div class="cl-desc" style="margin-top:4px">5,135 plans added in the April bulk run. Remaining ~15K plans may need another run closer to the Jun/Jul deadline. Auto-scheduled job runs ~Jun 22 and will pick up the rest.</div>
+      <div class="cl-desc" style="margin-top:4px">First monthly run: Apr 1 (5,135 plans). Will run again monthly through June, each time capturing newly separated participants and backfilled data. ~15K more plans expected over the remaining runs.</div>
     </div>
   </div>
 
