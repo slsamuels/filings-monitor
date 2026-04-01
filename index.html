@@ -135,7 +135,7 @@ td{padding:5px 8px;border-top:1px solid var(--bd)}tr:hover td{background:var(--s
 </head>
 <body>
 
-<div class="hdr"><h1>Filings <em>Monitor</em></h1><div class="ts">bigquery &bull; 2026-03-30</div></div>
+<div class="hdr"><h1>Filings <em>Monitor</em></h1><div class="ts">bigquery &bull; 2026-03-31</div></div>
 
 <!-- ═══ TIMELINE ═══ -->
 <div class="tl-w">
@@ -1471,11 +1471,11 @@ function go(id){switchTab(id)}
 const statusEl = document.querySelector('.hdr .ts');
 if (window.LIVE_DATA) {
   const meta = window.LIVE_DATA._meta || {};
-  statusEl.textContent = 'live data \u2022 refreshed: ' + (meta.last_refreshed ? new Date(meta.last_refreshed).toLocaleString() : 'now');
+  statusEl.textContent = 'last refresh: ' + (meta.last_refreshed ? new Date(meta.last_refreshed).toLocaleString() : new Date().toLocaleString());
   statusEl.style.color = '#34d399';
   updateDashboard(window.LIVE_DATA);
 } else {
-  statusEl.textContent = 'static snapshot \u2022 2026-03-31';
+  statusEl.textContent = 'last refresh: Mar 31, 2026';
 }
 
 function updateDashboard(data) {
@@ -1701,6 +1701,12 @@ generateActionItems({
     {plan_id:180802,plan_year:2025,state:'failed',has_fulfilled:false},
     {plan_id:258119,plan_year:2025,state:'failed',has_fulfilled:false},
     {plan_id:276430,plan_year:2025,state:'failed',has_fulfilled:false},
+    {plan_id:4487,plan_year:2024,state:'amended',has_fulfilled:false},
+    {plan_id:11061,plan_year:2024,state:'amended',has_fulfilled:false},
+    {plan_id:14219,plan_year:2024,state:'amended',has_fulfilled:false},
+    {plan_id:15540,plan_year:2024,state:'amended',has_fulfilled:false},
+    {plan_id:24073,plan_year:2024,state:'amended',has_fulfilled:false},
+    {plan_id:209692,plan_year:2024,state:'amended',has_fulfilled:false},
   ],
   '5330_status': [
     {plan_year:2023,section:'A',state:'prepared',exclusion_reason:'',cnt:1734},
