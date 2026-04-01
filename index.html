@@ -1506,9 +1506,11 @@ function generateActionItems(data) {
     if (ssnErrors.length > 0) {
       items.push({
         team: 'ops', priority: 'high',
-        title: ssnErrors.length + ' amended 8955s with SSN errors need participant data fix',
-        detail: 'Fix the participant SSN (record sequence # in fire_state_meta), then Batch Amend.',
-        action: 'Admin → find participant → fix SSN → Filing Console → Batch Amend',
+        title: ssnErrors.length + ' amended 8955s with SSN/data errors need participant fix',
+        detail: 'Fix participant SSN (record sequence # in fire_state_meta), then Batch Amend. Plans: 209692, 4487, 33547, 24073, 15540, 14219, 11061 (SSN) + 4850, 7899 (admin phone).',
+        action: 'Admin → fix participant data → Filing Console → Batch Amend',
+        ticket: 'RETIRE-2578',
+        ticketStatus: 'In Progress (assigned: Tommy Chiu, PR merged)',
         filing: '8955'
       });
     }
@@ -1671,6 +1673,11 @@ function renderActionItems(items) {
       html += '<h3><span class="p ' + priColors[item.priority] + '">' + item.priority.toUpperCase() + '</span> ' + item.title + '</h3>';
       html += '<p>' + item.detail + '</p>';
       html += '<p style="color:var(--a);margin-top:4px"><strong>Action:</strong> ' + item.action + '</p>';
+      if (item.ticket) {
+        html += '<p style="margin-top:4px;font-size:10px"><a href="https://gustohq.atlassian.net/browse/' + item.ticket + '" target="_blank" style="color:var(--b);text-decoration:none">\u{1F3AB} ' + item.ticket + '</a>';
+        if (item.ticketStatus) html += ' <span style="color:var(--g)">\u2022 ' + item.ticketStatus + '</span>';
+        html += '</p>';
+      }
       html += '<p style="color:var(--dd);font-size:9px;margin-top:2px">Filing: ' + item.filing + '</p>';
       html += '</div>';
     });
